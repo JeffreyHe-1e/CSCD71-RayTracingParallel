@@ -1,0 +1,8 @@
+2k_earth_daymap.ppm : https://www.solarsystemscope.com/textures/    
+WikiNormal.ppm : https://commons.wikimedia.org/wiki/File:Normal_map_example_-_Map.png
+colours.ppm : original
+4x4SpheresNormal.ppm : https://github.com/Broxxar/NormalMapping/blob/master/Assets/Textures/4x4SpheresNormal.png
+4x4SpheresNormalCorrected.ppm : https://github.com/Broxxar/NormalMapping/blob/master/Assets/Textures/4x4SpheresNormalCorrected.png
+earth_normal_map.ppm : https://visibleearth.nasa.gov/images/73934/topography/84331l The normal map is generated using this online tool: https://cpetry.github.io/NormalMap-Online/
+earth_alpha_map.pgm : https://www.shadedrelief.com/natural3/pages/extra.html
+abstract.pgm : original
