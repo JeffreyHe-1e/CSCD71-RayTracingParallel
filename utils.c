@@ -14,24 +14,6 @@
    Last updated: Aug. 2017  -  F.J.E.
 */
 
-/*****************************************************************************
- * COMPLETE THIS TEXT BOX:
- *
- * 1) Student Name: He, YiNing (Jeffrey)
- * 2) Student Name: Cheang, Gigi
- *
- * 1) Student number: 1006308979
- * 2) Student number: 1008216994
- *
- * 1) UtorID: heyi23
- * 2) UtorID: cheangzi
- *
- * We hereby certify that the work contained here is our own
- *
- * _____He, YiNing______            ____Cheang, Gigi_____
- * (sign with your name)            (sign with your name)
- ********************************************************************************/
-
 #include "utils.h"
 
 int debugFlag = 0; // [DEBUG] for printing something once.

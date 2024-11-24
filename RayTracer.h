@@ -138,8 +138,8 @@ struct object3D{
   void (*randomPoint)(struct object3D *obj, double *x, double *y, double *z);
 
   struct image *texImg;				  // Pointer to structure holding the texture for this object
-  struct image *photonMap;			// Photon map for this object
-  struct image *normalMap;			// Normal map for this object
+  struct image *photonMap;			// Photon map for this object     [drop]
+  struct image *normalMap;			// Normal map for this object     [drop]
   struct image *alphaMap;				// Alpha map for the object
 
 
@@ -155,8 +155,8 @@ struct object3D{
 	int normalMapped;		// This object has an associated normal map
 	int alphaMapped;		// This object has an associated alpha map
 
-	struct object3D *CSGnext;	// For CSG objects, points to next component
-	struct object3D *next;		// Pointer to next entry in object linked list
+	struct object3D *CSGnext;	// For CSG objects, points to next component    [drop]
+	struct object3D *next;		// Pointer to next entry in object linked list  [drop]
 	
 	// If needed for the advanced raytracer, you can modify this data structure to add any data/methods you
 	// require.
