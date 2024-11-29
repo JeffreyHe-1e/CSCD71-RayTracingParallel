@@ -2,7 +2,7 @@
   CSC D18 - RayTracer code.
 
   Written Dec. 9 2010 - Jan 20, 2011 by F. J. Estrada
-  Freely distributable for adacemic purposes only.
+  Freely distributable for academic purposes only.
 
   Uses Tom F. El-Maraghi's code for computing inverse
   matrices. You will need to compile together with
@@ -32,20 +32,10 @@ struct textureNode *texture_list;
 int MAX_DEPTH;
 struct view *cam; // Camera and view for this scene
 
-/**
- * Import the scene definition!
- */
-void buildScene(void)
-{
-#include "buildscene.c"
-//#include "buildscene-test.c"
-//#include "buildscene-texMap.c"
-//#include "buildscene-normMap.c"
-//#include "buildscene-alphaMap.c"
-//#include "buildscene-refraction.c"
-//#include "buildscene-lego.c"
+// Set up background colour here
+struct colourRGB background = {.R = 0.6, .G = 0.8, .B = 0.9}; // Background colour
 
-}
+#include "buildscene.c" // Import scene definition
 
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct ray3D *ray, int depth, double a, double b, struct colourRGB *col)
 {
@@ -424,12 +414,12 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
   // Find first hit
   findFirstHit(ray, &lambda, Os, &obj, &p, &n, &a, &b);
 
-  // No intersection, return background colour [0, 0, 0]
+  // No intersection, return background colour
   if (lambda < 0)
   {
-    col->R = 0;
-    col->G = 0;
-    col->B = 0;
+    col->R = background.R;
+    col->G = background.G;
+    col->B = background.B;
     return;
   }
 
@@ -459,7 +449,6 @@ int main(int argc, char *argv[])
                                // the direction or a ray
   struct ray3D ray;            // Structure to keep the ray from e to a pixel
   struct colourRGB col;        // Return colour for raytraced pixels
-  struct colourRGB background; // Background colour
   int i, j;                    // Counters for pixel coordinates
   unsigned char *rgbIm;
 
@@ -537,9 +526,16 @@ int main(int argc, char *argv[])
 
   cam = setupView(&e, &g, &up, -1, -1, 1, 2);
 
+  time_t sec;
+  time(&sec);
+  printf("complete initialization: %ld\n", sec);
+
   // set up scene (may or may not include camera setup).
   buildScene(); // Create a scene. This defines all the
                 // objects in the world of the raytracer
+
+  time(&sec);
+  printf("complete buildscene: %ld\n", sec);
 
   if (cam == NULL)
   {
@@ -548,11 +544,6 @@ int main(int argc, char *argv[])
     deleteImage(im);
     exit(0);
   }
-
-  // Set up background colour here
-  background.R = 0;
-  background.G = 0;
-  background.B = 0;
 
   // Do the raytracing
   //////////////////////////////////////////////////////
@@ -580,10 +571,9 @@ int main(int argc, char *argv[])
   // fprintf(stderr, "Rendering row: ");
   fprintf(stderr, "Rendering...");
 
-#pragma omp parallel for collapse(2) schedule(dynamic, 32) private(col)
+#pragma omp parallel for collapse(2) schedule(dynamic, 10) private(col)
   for (j = 0; j < sx; j++) // For each of the pixels in the image
   {
-    // fprintf(stderr, "%d/%d, ", j, sx); // doesn't work with collapse
     for (i = 0; i < sx; i++)
     {
       if (!antialiasing)
@@ -592,7 +582,7 @@ int main(int argc, char *argv[])
       }
       else
       {
-        const int NUM_SAMPLES = 5;
+        const int NUM_SAMPLES = 10;
         struct colourRGB samples[NUM_SAMPLES];
 
         // calculate the colour for each sample
@@ -630,6 +620,8 @@ int main(int argc, char *argv[])
   } // end for j
 
   fprintf(stderr, "\nDone!\n");
+  time(&sec);
+  printf("complete render: %ld\n", sec);
 
   // Output rendered image
   imageOutput(im, output_name);
@@ -638,6 +630,9 @@ int main(int argc, char *argv[])
   cleanup(object_list, light_list, texture_list); // Object, light, and texture lists
   deleteImage(im);                                // Rendered image
   free(cam);                                      // camera view
+
+  time(&sec);
+  printf("complete output: %ld\n", sec);
   exit(0);
 }
 

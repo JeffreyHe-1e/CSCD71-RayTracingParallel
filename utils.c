@@ -2096,45 +2096,66 @@ void generateCoolScene(double ra, double rd, double rs, double rg, double alpha,
   }
 }
 
-void drawStar(double centerX, double centerY, double centerZ, double radius, double ceilHeight,
-        struct textureNode **texture_list, struct object3D **object_list)
+void drawTree(double size, int depth, double T_mat[4][4], struct albedosPhong branchPh, struct colourRGB barkCol, struct colourRGB jointCol, double shiny, object3D *object_list)
 {
-  struct albedosPhong nestPhong = {.ra = .5, .rd = .8, .rs = .1, .rg = 0};
-  struct albedosPhong lightPhong = {.ra = .9, .rd = .8, .rs = .1, .rg = .2};
-  struct albedosPhong hangPhong = {.ra = .2, .rd = .9, .rs = .1, .rg = .2};
+  branchOne(size, depth, T_mat, branchPh, barkCol, jointCol, shiny, object_list);
+}
 
-  struct colourRGB nestCol = {.R = .9, .G = .9, .B = .9};
-  struct colourRGB lightCol = {.R = .9, .G = .9, .B = .9};
-  struct colourRGB hangCol = {.R = .9, .G = .9, .B = .9};
+/**
+ * Draw one branch from the current node
+ */
+void branchOne(double size, int depth, double T_mat[4][4], struct albedosPhong branchPh, struct colourRGB barkCol, struct colourRGB jointCol, double shiny, object3D *object_list)
+{
+  double jointRatio = 1.1;  // Radius of the joint sphere, if the cylinder has radius 1
+  double cylRatio = 5;      // Height of the cylinder, if the cylinder has radius 1
+  double recurseRatio = 0.8;
 
-  struct object3D *obj;
+  struct object3D *o;
 
-  // nest sphere //////////////////////////////////////////////////////////////
-  obj = newSphere(nestPhong.ra, nestPhong.rd, nestPhong.rs, nestPhong.rg,
-                  nestCol.R, nestCol.G, nestCol.B ,  1, 1, 1);
-  loadTexture(obj, "assets/abstract.pgm", 3, texture_list);
-  Scale(obj, radius, radius, radius);
-  Translate(obj, centerX, centerY, centerZ);
-  invert(&obj->T[0][0], &obj->Tinv[0][0]);
-  insertObject(obj, object_list);
+  // draw trunk (cylinder)
+  o = newCyl(branchPh.ra, branchPh.rd, branchPh.rs, branchPh.rg, barkCol.R, barkCol.G, barkCol.B, 1, 1, shiny);
+  RotateX(o, -PI/2);
+  Scale(o, size, size*cylRatio, size);
+//  Translate(o, 0, size*cylRatio, 0);
+  matMult(T_mat, o->T);    // apply hierarchical transform
+  invert(&o->T[0][0], &o->Tinv[0][0]);
+  insertObject(o, &object_list);
 
+  if (depth > 0)
+  {
+    // draw joint (sphere)
+    o = newSphere(branchPh.ra, branchPh.rd, branchPh.rs, branchPh.rg, jointCol.R, jointCol.G, jointCol.B, 1, 1, shiny);
+    Scale(o, size*jointRatio, size*jointRatio, size*jointRatio);
+    Translate(o, 0, size*cylRatio, 0);
+    matMult(T_mat, o->T);    // apply hierarchical transform
+    invert(&o->T[0][0], &o->Tinv[0][0]);
+    insertObject(o, &object_list);
 
-  // light cylinder //////////////////////////////////////////////////////////////
-  obj = newCyl(lightPhong.ra, lightPhong.rd, lightPhong.rs, lightPhong.rg,
-               lightCol.R, lightCol.G, lightCol.B ,  1, 1, 1);
-  RotateX(obj, -PI/2);
-  Translate(obj, 0, -.5, 0);
-  Scale(obj, radius*0.1, radius*0.8, radius*0.1);
-  Translate(obj, centerX, centerY, centerZ);
-  invert(&obj->T[0][0], &obj->Tinv[0][0]);
-  insertObject(obj, object_list);
+    // recursively call drawTree(...)
+    double tempMat[4][4];
+    double thetaX = 0, thetaY = 0;
 
-  // hang cylinder //////////////////////////////////////////////////////////////
-  obj = newCyl(hangPhong.ra, hangPhong.rd, hangPhong.rs, hangPhong.rg,
-               hangCol.R, hangCol.G, hangCol.B ,  1, 1, 1);
-  RotateX(obj, -PI/2);
-  Scale(obj, radius*0.05, ceilHeight - centerY, radius*0.05);
-  Translate(obj, centerX, centerY, centerZ);
-  invert(&obj->T[0][0], &obj->Tinv[0][0]);
-  insertObject(obj, object_list);
+    for (int i = 0; i < 3; i++) {
+      thetaX = drand48() * PI/3;
+      thetaY = drand48() * PI*2;
+
+      memcpy(&tempMat[0][0], &eye4x4[0][0], 16 * sizeof(double));
+      RotateZMat(tempMat, thetaX);
+      RotateYMat(tempMat, thetaY);
+      TranslateMat(tempMat, 0, size*cylRatio, 0);
+      matMult(T_mat, tempMat);
+      drawTree(size*recurseRatio, depth - 1, tempMat, branchPh, barkCol, jointCol, shiny, object_list);
+    }
+  }
+  else {
+    // draw leaf ////////////////////////////////////////////////////////////////////////////
+    double leafSize = drand48() + 0.3;
+
+    o = newSphere(branchPh.ra, branchPh.rd, branchPh.rs, 0.1, 0.15, 0.45, 0.25, 1, 1, shiny);
+    Scale(o, leafSize, leafSize, leafSize);
+    Translate(o, 0, size*cylRatio, 0);
+    matMult(T_mat, o->T);    // apply hierarchical transform
+    invert(&o->T[0][0], &o->Tinv[0][0]);
+    insertObject(o, &object_list);
+  }
 }

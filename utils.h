@@ -333,6 +333,7 @@ void generateCoolScene(double ra, double rd, double rs, double rg, double alpha,
 											 double x, double y, double z,
 											 double translateX, double translateY, double translateZ, double rot,
 											 int isRGB, double numIters, object3D **object_list);
-void drawStar(double centerX, double centerY, double centerZ, double radius, double ceilHeight,
-              struct textureNode **texture_list, struct object3D **object_list);
+
+void drawTree(double size, int depth, double T_mat[4][4], struct albedosPhong branchPh, struct colourRGB barkCol, struct colourRGB jointCol, double shiny, object3D *object_list);
+void branchOne(double size, int depth, double T_mat[4][4], struct albedosPhong branchPh, struct colourRGB barkCol, struct colourRGB jointCol, double shiny, object3D *object_list);
 #endif
