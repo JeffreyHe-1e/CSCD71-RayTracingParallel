@@ -571,11 +571,21 @@ int main(int argc, char *argv[])
   // fprintf(stderr, "Rendering row: ");
   fprintf(stderr, "Rendering...");
 
-#pragma omp parallel for collapse(2) schedule(dynamic, 10) private(col)
-  for (j = 0; j < sx; j++) // For each of the pixels in the image
+// #pragma omp parallel for collapse(2) schedule(dynamic, 10) private(col)
+  // for (j = 0; j < sx; j++) // For each of the pixels in the image
+  // {
+  //   for (i = 0; i < sx; i++)
+  //   {
+
+  int k;
+
+
+#pragma acc kernels
+  for (k = 0; k < sx * sx; k++)
   {
-    for (i = 0; i < sx; i++)
-    {
+      i = k % sx;
+      j = k / sx;
+
       if (!antialiasing)
       {
         calculatePixel(du, dv, cam, i, j, &col);
@@ -617,7 +627,7 @@ int main(int argc, char *argv[])
       ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 1] = (unsigned char)(255 * col.G);
       ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 2] = (unsigned char)(255 * col.B);
     } // end for i
-  } // end for j
+  // } // end for j
 
   fprintf(stderr, "\nDone!\n");
   time(&sec);
