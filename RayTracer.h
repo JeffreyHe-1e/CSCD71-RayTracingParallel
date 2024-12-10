@@ -190,11 +190,17 @@ struct view{
 int main(int argc, char *argv[]);									// Main raytracing function.
 
 // Raytracing
+#pragma acc routine
 void buildScene(void);											// Scene set up. Defines objects and object transformations
+#pragma acc routine
 void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object3D *Os);		// RayTracing routine
+#pragma acc routine
 void findFirstHit(struct ray3D *ray, double *lambda, struct object3D *Os, struct object3D **obj, struct point3D *p, struct point3D *n, double *a, double *b);
+#pragma acc routine
 void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n,struct ray3D *ray, int depth, double a, double b, struct colourRGB *col);
 
+#pragma acc routine
 void calculatePixel(double du, double dv, struct view *cam, double i, double j, struct colourRGB *col); // calculate the colour at a pixel (i,j), in anti-aliasing i and j are doubles
+#pragma acc routine
 void getRefraction(struct point3D *incidentVec, struct point3D *normalVec, double nEnv, double nObj, struct point3D *refrVec); // calculate the refraction vector
 #endif
