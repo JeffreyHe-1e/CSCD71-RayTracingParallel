@@ -27,10 +27,15 @@
 // A couple of global structures and data: An object list, a light list, and the
 // maximum recursion depth
 struct object3D *object_list;
+#pragma acc declare create(object_list)
 struct pointLS *light_list;
+#pragma acc declare create(light_list)
 struct textureNode *texture_list;
+#pragma acc declare create(texture_list)
 int MAX_DEPTH;
+#pragma acc declare create(MAX_DEPTH)
 struct view *cam; // Camera and view for this scene
+#pragma acc declare create(cam)
 
 // Set up background colour here
 struct colourRGB background = {.R = 0.6, .G = 0.8, .B = 0.9}; // Background colour
@@ -203,7 +208,7 @@ void rtShade(struct object3D *obj, struct point3D *p, struct point3D *n, struct 
   tmp_col.B *= alpha;
 
   // REFLECTED & REFRACTED (GLOBAL) COMPONENT ///////////////////////////////////////////////////////////////////
-  if (depth < MAX_DEPTH)
+  if (depth < 5) // TODO revert from hard code MAX_DEPTH
   {
     // calculate reflection ray
     struct colourRGB reflCol;
@@ -417,9 +422,9 @@ void rayTrace(struct ray3D *ray, int depth, struct colourRGB *col, struct object
   // No intersection, return background colour
   if (lambda < 0)
   {
-    col->R = background.R;
-    col->G = background.G;
-    col->B = background.B;
+    col->R = .6;
+    col->G = .8;
+    col->B = .9;
     return;
   }
 
@@ -446,7 +451,7 @@ int main(int argc, char *argv[])
   struct point3D up;
   double du, dv;               // Increase along u and v directions for pixel coordinates
   struct point3D pc, d;        // Point structures to keep the coordinates of a pixel and
-                               // the direction or a ray
+  // the direction or a ray
   struct ray3D ray;            // Structure to keep the ray from e to a pixel
   struct colourRGB col;        // Return colour for raytraced pixels
   int i, j;                    // Counters for pixel coordinates
@@ -532,7 +537,7 @@ int main(int argc, char *argv[])
 
   // set up scene (may or may not include camera setup).
   buildScene(); // Create a scene. This defines all the
-                // objects in the world of the raytracer
+  // objects in the world of the raytracer
 
   time(&sec);
   printf("complete buildscene: %ld\n", sec);
@@ -557,8 +562,8 @@ int main(int argc, char *argv[])
   //////////////////////////////////////////////////////
   du = cam->wsize / (sx - 1);  // du and dv. In the notes in terms of wl and wr, wt and wb,
   dv = -cam->wsize / (sx - 1); // here we use wl, wt, and wsize. du=dv since the image is
-                               // and dv is negative since y increases downward in pixel
-                               // coordinates and upward in camera coordinates.
+  // and dv is negative since y increases downward in pixel
+  // coordinates and upward in camera coordinates.
 
   fprintf(stderr, "View parameters:\n");
   fprintf(stderr, "Left=%f, Top=%f, Width=%f, f=%f\n", cam->wl, cam->wt, cam->wsize, cam->f);
@@ -581,52 +586,53 @@ int main(int argc, char *argv[])
 
 
 #pragma acc kernels
+#pragma omp parallel for private(col)
   for (k = 0; k < sx * sx; k++)
   {
-      i = k % sx;
-      j = k / sx;
+    i = k % sx;
+    j = k / sx;
 
-      if (!antialiasing)
+    if (!antialiasing)
+    {
+      calculatePixel(du, dv, cam, i, j, &col);
+    }
+    else
+    {
+      const int NUM_SAMPLES = 10;
+      struct colourRGB samples[NUM_SAMPLES];
+
+      // calculate the colour for each sample
+      for (int s = 0; s < NUM_SAMPLES; s++)
       {
-        calculatePixel(du, dv, cam, i, j, &col);
-      }
-      else
-      {
-        const int NUM_SAMPLES = 10;
-        struct colourRGB samples[NUM_SAMPLES];
+        // add between 0 and 1 to i and j
+        double sample_i = i + drand48();
+        double sample_j = j + drand48();
 
-        // calculate the colour for each sample
-        for (int s = 0; s < NUM_SAMPLES; s++)
-        {
-          // add between 0 and 1 to i and j
-          double sample_i = i + drand48();
-          double sample_j = j + drand48();
-
-          calculatePixel(du, dv, cam, sample_i, sample_j, &samples[s]);
-        }
-
-        // average the colours
-        col.R = 0;
-        col.G = 0;
-        col.B = 0;
-
-        for (int s = 0; s < NUM_SAMPLES; s++)
-        {
-          col.R += samples[s].R;
-          col.G += samples[s].G;
-          col.B += samples[s].B;
-        }
-
-        col.R /= NUM_SAMPLES;
-        col.G /= NUM_SAMPLES;
-        col.B /= NUM_SAMPLES;
+        calculatePixel(du, dv, cam, sample_i, sample_j, &samples[s]);
       }
 
-      // Step 3: set i,j pixel colour to col
-      ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 0] = (unsigned char)(255 * col.R);
-      ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 1] = (unsigned char)(255 * col.G);
-      ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 2] = (unsigned char)(255 * col.B);
-    } // end for i
+      // average the colours
+      col.R = 0;
+      col.G = 0;
+      col.B = 0;
+
+      for (int s = 0; s < NUM_SAMPLES; s++)
+      {
+        col.R += samples[s].R;
+        col.G += samples[s].G;
+        col.B += samples[s].B;
+      }
+
+      col.R /= NUM_SAMPLES;
+      col.G /= NUM_SAMPLES;
+      col.B /= NUM_SAMPLES;
+    }
+
+    // Step 3: set i,j pixel colour to col
+    ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 0] = (unsigned char)(255 * col.R);
+    ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 1] = (unsigned char)(255 * col.G);
+    ((unsigned char *)(im->rgbdata))[(j * sx + i) * 3 + 2] = (unsigned char)(255 * col.B);
+  } // end for i
   // } // end for j
 
   fprintf(stderr, "\nDone!\n");
@@ -661,11 +667,7 @@ void calculatePixel(double du, double dv, struct view *cam, double i, double j, 
   pij.py = j * dv + cam->wt;
   pij.pz = cam->f;
   pij.pw = 1;
-
-  // convert pij to world coordinates
-  matVecMult(cam->C2W, &pij);
-
-  // calculate dij in world coordinates
+// convert pij to world coordinates matVecMult(cam->C2W, &pij); // calculate dij in world coordinates
   dij.px = pij.px - cam->e.px;
   dij.py = pij.py - cam->e.py;
   dij.pz = pij.pz - cam->e.pz;

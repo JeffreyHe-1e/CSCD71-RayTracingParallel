@@ -7,3 +7,5 @@
 
 # compile multi-threaded (on Mac with homebrew libomp)
 g++ -g -O3 -Xclang -fopenmp -L/opt/homebrew/opt/libomp/lib -I/opt/homebrew/opt/libomp/include -lomp svdDynamic.c RayTracer.c utils.c -o RayTracer
+
+g++ -O3 -g -fopenacc svdDynamic.c RayTracer.c utils.c -lm -o RayTracer
